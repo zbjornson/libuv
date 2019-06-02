@@ -93,6 +93,106 @@ struct uv__mmsghdr {
   unsigned int msg_len;
 };
 
+/* io_uring (adapted from io_uring.h) */
+
+/* IO submission data structure (Submission Queue Entry) */
+struct uv__io_uring_sqe {
+  uint8_t opcode;  /* type of operation for this sqe */
+  uint8_t flags;   /* IOSQE_ flags */
+  uint16_t ioprio; /* ioprio for the request */
+  int32_t fd;      /* file descriptor to do IO on */
+  uint64_t off;    /* offset into file */
+  uint64_t addr;   /* pointer to buffer or iovecs */
+  uint32_t len;    /* buffer size or number of iovecs */
+  union {
+    uint32_t rw_flags;
+    uint32_t fsync_flags;
+    uint16_t poll_events;
+    uint32_t sync_range_flags;
+    uint32_t msg_flags;
+  } flags_events_u;
+  uint64_t user_data;   /* data to be passed back at completion time */
+  union {
+    uint16_t buf_index; /* index into fixed buffers, if used */
+    uint64_t __pad2[3];
+  } buf_u;
+};
+
+/* IO completion data structure (Completion Queue Entry) */
+struct uv__io_uring_cqe {
+  uint64_t user_data; /* sqe->data submission passed back */
+  int32_t res;        /* result code for this event */
+  uint32_t flags;
+};
+
+/* io_uring_enter(2) opcodes */
+#define UV__IORING_OP_NOP              0
+#define UV__IORING_OP_READV            1
+#define UV__IORING_OP_WRITEV           2
+#define UV__IORING_OP_FSYNC            3
+#define UV__IORING_OP_READ_FIXED       4
+#define UV__IORING_OP_WRITE_FIXED      5
+#define UV__IORING_OP_POLL_ADD         6
+#define UV__IORING_OP_POLL_REMOVE      7
+#define UV__IORING_OP_SYNC_FILE_RANGE  8
+#define UV__IORING_OP_SENDMSG          9
+#define UV__IORING_OP_RECVMSG          10
+
+/* io_uring_enter(2) flags */
+#define UV__IORING_ENTER_GETEVENTS	(1U << 0)
+#define UV__IORING_ENTER_SQ_WAKEUP	(1U << 1)
+
+/* sqe->fsync_flags */
+#define UV__IORING_FSYNC_DATASYNC  (1U << 0)
+
+/* io_uring_register(2) opcodes and arguments */
+#define uv__IORING_REGISTER_BUFFERS    0
+#define uv__IORING_UNREGISTER_BUFFERS  1
+#define uv__IORING_REGISTER_FILES      2
+#define uv__IORING_UNREGISTER_FILES    3
+#define uv__IORING_REGISTER_EVENTFD    4
+#define uv__IORING_UNREGISTER_EVENTFD  5
+
+/* Magic offsets to mmap the data in the io_uring fd. */
+#define UV__IORING_OFF_SQ_RING  0ULL
+#define UV__IORING_OFF_CQ_RING  0x8000000ULL
+#define UV__IORING_OFF_SQES     0x10000000ULL
+
+/* Filled with the offset for mmap(2) */
+struct uv__io_sqring_offsets {
+  uint32_t head;
+  uint32_t tail;
+  uint32_t ring_mask;
+  uint32_t ring_entries;
+  uint32_t flags;
+  uint32_t dropped;      /* num not submitted */
+  uint32_t array;        /* sqe index array */
+  uint32_t resv1;
+  uint64_t resv2;
+};
+
+struct uv__io_cqring_offsets {
+  uint32_t head;
+  uint32_t tail;
+  uint32_t ring_mask;
+  uint32_t ring_entries;
+  uint32_t overflow;
+  uint32_t cqes;
+  uint64_t resv[2];
+};
+
+/* Passed in for io_uring_setup(2). Copied back with updated info on success. */
+struct uv__io_uring_params {
+  uint32_t sq_entries; /* sq size */
+  uint32_t cq_entries; /* cq size */
+  uint32_t flags;
+  uint32_t sq_thread_cpu;
+  uint32_t sq_thread_idle;
+  uint32_t resv[5];
+	struct uv__io_sqring_offsets sq_off;
+	struct uv__io_cqring_offsets cq_off;
+};
+
 int uv__accept4(int fd, struct sockaddr* addr, socklen_t* addrlen, int flags);
 int uv__eventfd(unsigned int count);
 int uv__eventfd2(unsigned int count, int flags);
@@ -113,5 +213,14 @@ int uv__sendmmsg(int fd,
 ssize_t uv__preadv(int fd, const struct iovec *iov, int iovcnt, int64_t offset);
 ssize_t uv__pwritev(int fd, const struct iovec *iov, int iovcnt, int64_t offset);
 int uv__dup3(int oldfd, int newfd, int flags);
+int uv__io_uring_register(int fd,
+                          unsigned int opcode,
+                          void *arg,
+                          unsigned int nr_args);
+int uv__io_uring_setup(unsigned int entries, struct uv__io_uring_params *p);
+int uv__io_uring_enter(int fd,
+                       unsigned int to_submit,
+                       unsigned int min_complete,
+                       unsigned int flags, sigset_t *sig);
 
 #endif /* UV_LINUX_SYSCALL_H_ */

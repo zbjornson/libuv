@@ -125,8 +125,36 @@ typedef struct uv__stream_queued_fds_s uv__stream_queued_fds_t;
 
 /* loop flags */
 enum {
-  UV_LOOP_BLOCK_SIGPROF = 1
+  UV_LOOP_BLOCK_SIGPROF = 1,
+  /* data member of backend union is a uv__backend_data_io_uring */
+  UV_LOOP_BACKEND_DATA_IO_URING = (1 << 1)
 };
+
+/* data struct when io_uring is available */
+struct uv__backend_data_io_uring {
+  int fd;
+  struct uv__io_uring* ring;
+};
+
+// TODO move to impl
+inline int uv__get_backend_fd(const uv_loop_t* loop) {
+  if (loop->flags & UV_LOOP_BACKEND_DATA_IO_URING) {
+    struct uv__backend_data_io_uring* data = loop->backend.data;
+    return data->fd;
+  } else {
+    return loop->backend.fd;
+  }
+}
+
+// TODO move to impl
+inline void uv__set_backend_fd(uv_loop_t* loop, int fd) {
+  if (loop->flags & UV_LOOP_BACKEND_DATA_IO_URING) {
+    struct uv__backend_data_io_uring* data = loop->backend.data;
+    data->fd = fd;
+  } else {
+    loop->backend.fd = fd;
+  }
+}
 
 /* flags of excluding ifaddr */
 enum {
