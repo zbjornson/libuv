@@ -421,6 +421,7 @@ uvinclude_HEADERS += include/uv/linux.h
 libuv_la_CFLAGS += -D_GNU_SOURCE
 libuv_la_SOURCES += src/unix/linux-core.c \
                     src/unix/linux-inotify.c \
+                    src/unix/linux-iouring.c \
                     src/unix/linux-syscalls.c \
                     src/unix/linux-syscalls.h \
                     src/unix/procfs-exepath.c \

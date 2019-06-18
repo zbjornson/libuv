@@ -33,6 +33,7 @@
 
 #if defined(__linux__)
 # include "linux-syscalls.h"
+# include "linux-iouring.h"
 #endif /* __linux__ */
 
 #if defined(__MVS__)
@@ -124,8 +125,36 @@ typedef struct uv__stream_queued_fds_s uv__stream_queued_fds_t;
 
 /* loop flags */
 enum {
-  UV_LOOP_BLOCK_SIGPROF = 1
+  UV_LOOP_BLOCK_SIGPROF = 1,
+  /* data member of backend union is a uv__backend_data_io_uring */
+#ifdef __linux__
+  UV_LOOP_USE_IOURING = UV_LOOP_RESERVED31
+#else
+  UV_LOOP_USE_IOURING = 0;
+#endif
 };
+
+/* data struct when io_uring is available */
+struct uv__backend_data_io_uring {
+  int fd;
+  struct uv__io_uring ring;
+};
+
+inline int uv__get_backend_fd(const uv_loop_t* loop) {
+  if (loop->flags & UV_LOOP_USE_IOURING) {
+    return ((struct uv__backend_data_io_uring*)loop->backend.data)->fd;
+  } else {
+    return loop->backend.fd;
+  }
+}
+
+inline void uv__set_backend_fd(uv_loop_t* loop, int fd) {
+  if (loop->flags & UV_LOOP_USE_IOURING) {
+    ((struct uv__backend_data_io_uring*)loop->backend.data)->fd = fd;
+  } else {
+    loop->backend.fd = fd;
+  }
+}
 
 /* flags of excluding ifaddr */
 enum {
@@ -144,6 +173,11 @@ struct uv__stream_queued_fds_s {
   int fds[1];
 };
 
+/* engine used for request */
+enum {
+  uv__ENGINE_THREADPOOL = 0,
+  UV__ENGINE_IOURING = 1
+};
 
 #if defined(_AIX) || \
     defined(__APPLE__) || \
@@ -239,6 +273,55 @@ int uv__kqueue_init(uv_loop_t* loop);
 int uv__platform_loop_init(uv_loop_t* loop);
 void uv__platform_loop_delete(uv_loop_t* loop);
 void uv__platform_invalidate_fd(uv_loop_t* loop, int fd);
+#ifdef __linux__
+int uv__platform_fs_read(uv_loop_t* loop,
+                         uv_fs_t* req,
+                         uv_os_fd_t file,
+                         const uv_buf_t bufs[],
+                         unsigned int nbufs,
+                         int64_t off,
+                         uv_fs_cb cb);
+int uv__platform_fs_write(uv_loop_t* loop,
+                          uv_fs_t* req,
+                          uv_os_fd_t file,
+                          const uv_buf_t bufs[],
+                          unsigned int nbufs,
+                          int64_t off,
+                          uv_fs_cb cb);
+int uv__platform_fs_fsync(uv_loop_t* loop,
+                          uv_fs_t* req,
+                          uv_os_fd_t file,
+                          uv_fs_cb cb);
+int uv__platform_work_cancel(uv_req_t* req);
+#else  /* !__linux__ */
+inline int uv__platform_fs_read(uv_loop_t* loop,
+                                uv_fs_t* req,
+                                uv_os_fd_t file,
+                                const uv_buf_t bufs[],
+                                unsigned int nbufs,
+                                int64_t off,
+                                uv_fs_cb cb) {
+  return UV_ENOSYS;
+}
+int uv__platform_fs_write(uv_loop_t* loop,
+                          uv_fs_t* req,
+                          uv_os_fd_t file,
+                          const uv_buf_t bufs[],
+                          unsigned int nbufs,
+                          int64_t off,
+                          uv_fs_cb cb) {
+  return UV_ENOSYS;
+}
+int uv__platform_fs_fsync(uv_loop_t* loop,
+                          uv_fs_t* req,
+                          uv_os_fd_t file,
+                          uv_fs_cb cb) {
+  return UV_ENOSYS;
+}
+int uv__platform_work_cancel(uv_req_t* req) {
+  return UV_ENOSYS;
+}
+#endif  /* !__linux__ */
 
 /* various */
 void uv__async_close(uv_async_t* handle);

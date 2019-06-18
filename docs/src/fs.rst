@@ -9,8 +9,11 @@ operations. All functions defined in this document take a callback, which is
 allowed to be NULL. If the callback is NULL the request is completed synchronously,
 otherwise it will be performed asynchronously.
 
-All file operations are run on the threadpool. See :ref:`threadpool` for information
-on the threadpool size.
+All asynchronous file operations are run on the threadpool, except when io_uring
+is available. See :ref:`threadpool` for information on the threadpool size. When
+available (Linux kernel v5.2 and later), io_uring is used for `uv_fs_fsync`,
+as well as for `uv_fs_read` and `uv_fs_write` when the `offset` parameter is not
+-1 (i.e. when performing a positional read/write).
 
 .. note::
      On Windows `uv_fs_*` functions use utf-8 encoding.
@@ -202,6 +205,11 @@ API
 
     Equivalent to :man:`preadv(2)`.
 
+    .. note::
+        On Linux v5.2 and later, io_uring is used instead of the threadpool when
+        `offset` is specified (i.e. not `-1`). Performance may be significantly
+        better when this parameter is specified.
+
     .. versionchanged:: 2.0.0 replace uv_file with uv_os_fd_t
 
 .. c:function:: int uv_fs_unlink(uv_loop_t* loop, uv_fs_t* req, const char* path, uv_fs_cb cb)
@@ -211,6 +219,11 @@ API
 .. c:function:: int uv_fs_write(uv_loop_t* loop, uv_fs_t* req, uv_os_fd_t file, const uv_buf_t bufs[], unsigned int nbufs, int64_t offset, uv_fs_cb cb)
 
     Equivalent to :man:`pwritev(2)`.
+
+    .. note::
+        On Linux v5.2 and later, io_uring is used instead of the threadpool when
+        `offset` is specified (i.e. not `-1`). Performance may be significantly
+        better when this parameter is specified.
 
     .. versionchanged:: 2.0.0 replace uv_file with uv_os_fd_t
 

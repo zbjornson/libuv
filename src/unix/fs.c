@@ -1538,8 +1538,14 @@ int uv_fs_fstat(uv_loop_t* loop, uv_fs_t* req, uv_os_fd_t file, uv_fs_cb cb) {
 
 
 int uv_fs_fsync(uv_loop_t* loop, uv_fs_t* req, uv_os_fd_t file, uv_fs_cb cb) {
+  int rc;
   INIT(FSYNC);
   req->file = file;
+  rc = uv__platform_fs_fsync(loop, req, file, cb);
+  /* See def in linux-iouring.c for cases when we want to fall-through to
+   * threadpool impl. */
+  if (rc != UV_ENOSYS && rc != UV_ENOTSUP && rc != UV_ENOMEM)
+    return rc;
   POST;
 }
 
@@ -1644,6 +1650,8 @@ int uv_fs_read(uv_loop_t* loop, uv_fs_t* req,
                unsigned int nbufs,
                int64_t off,
                uv_fs_cb cb) {
+  int rc;
+
   INIT(READ);
 
   if (bufs == NULL || nbufs == 0)
@@ -1662,6 +1670,13 @@ int uv_fs_read(uv_loop_t* loop, uv_fs_t* req,
   memcpy(req->bufs, bufs, nbufs * sizeof(*bufs));
 
   req->off = off;
+
+  rc = uv__platform_fs_read(loop, req, file, bufs, nbufs, off, cb);
+  /* See def in linux-iouring.c for cases when we want to fall-through to
+   * threadpool impl. */
+  if (rc != UV_ENOSYS && rc != UV_ENOTSUP && rc != UV_ENOMEM)
+    return rc;
+
   POST;
 }
 
@@ -1826,6 +1841,8 @@ int uv_fs_write(uv_loop_t* loop,
                 unsigned int nbufs,
                 int64_t off,
                 uv_fs_cb cb) {
+  int rc;
+
   INIT(WRITE);
 
   if (bufs == NULL || nbufs == 0)
@@ -1844,6 +1861,13 @@ int uv_fs_write(uv_loop_t* loop,
   memcpy(req->bufs, bufs, nbufs * sizeof(*bufs));
 
   req->off = off;
+
+  rc = uv__platform_fs_write(loop, req, file, bufs, nbufs, off, cb);
+  /* See def in linux-iouring.c for cases when we want to fall-through to
+   * threadpool impl. */
+  if (rc != UV_ENOSYS && rc != UV_ENOTSUP && rc != UV_ENOMEM)
+    return rc;
+
   POST;
 }
 

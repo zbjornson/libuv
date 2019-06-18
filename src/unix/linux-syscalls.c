@@ -185,7 +185,7 @@
 # elif defined(__arm__)
 #  define __NR_dup3 (UV_SYSCALL_BASE + 358)
 # endif
-#endif /* __NR_pwritev */
+#endif /* __NR_dup3 */
 
 #ifndef __NR_statx
 # if defined(__x86_64__)
@@ -202,6 +202,16 @@
 #  define __NR_statx 379
 # endif
 #endif /* __NR_statx */
+
+#ifndef __NR_io_uring_setup
+# define __NR_io_uring_setup 425
+#endif
+#ifndef __NR_io_uring_enter
+# define __NR_io_uring_enter 426
+#endif
+#ifndef __NR_io_uring_register
+# define __NR_io_uring_register 427
+#endif
 
 int uv__accept4(int fd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
 #if defined(__i386__)
@@ -366,4 +376,26 @@ int uv__statx(int dirfd,
 #else
   return errno = ENOSYS, -1;
 #endif
+}
+
+
+int uv__io_uring_register(int fd,
+                          unsigned int opcode,
+                          void *arg,
+                          unsigned int nr_args) {
+  return syscall(__NR_io_uring_register, fd, opcode, arg, nr_args);
+}
+
+
+int uv__io_uring_setup(unsigned int entries, struct uv__io_uring_params *p) {
+  return syscall(__NR_io_uring_setup, entries, p);
+}
+
+
+int uv__io_uring_enter(int fd,
+                       unsigned int to_submit,
+                       unsigned int min_complete,
+                       unsigned int flags, sigset_t *sig) {
+  return syscall(__NR_io_uring_enter, fd, to_submit, min_complete,
+                 flags, sig, _NSIG / 8);
 }

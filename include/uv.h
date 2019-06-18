@@ -235,7 +235,8 @@ typedef struct uv_passwd_s uv_passwd_t;
 typedef struct uv_utsname_s uv_utsname_t;
 
 typedef enum {
-  UV_LOOP_BLOCK_SIGNAL
+  UV_LOOP_BLOCK_SIGNAL,
+  UV_LOOP_RESERVED31 = (1 << 30)
 } uv_loop_option;
 
 typedef enum {
@@ -381,7 +382,7 @@ UV_EXTERN char* uv_err_name_r(int err, char* buf, size_t buflen);
   /* read-only */                                                             \
   uv_req_type type;                                                           \
   /* private */                                                               \
-  void* reserved[6];                                                          \
+  void* reserved[5];                                                          \
   UV_REQ_PRIVATE_FIELDS                                                       \
 
 /* Abstract base class of all requests. */
@@ -1281,6 +1282,11 @@ struct uv_dir_s {
   UV_DIR_PRIVATE_FIELDS
 };
 
+/* TODO move into UV_FS_PRIVATE_FIELDS in v2 */
+#define UV_REQ_PRIVATE_FIELDS_TEMP UV_REQ_PRIVATE_FIELDS;
+#undef UV_REQ_PRIVATE_FIELDS
+#define UV_REQ_PRIVATE_FIELDS uintptr_t fs_req_engine;
+
 /* uv_fs_t is a subclass of uv_req_t. */
 struct uv_fs_s {
   UV_REQ_FIELDS
@@ -1293,6 +1299,10 @@ struct uv_fs_s {
   uv_stat_t statbuf;  /* Stores the result of uv_fs_stat() and uv_fs_fstat(). */
   UV_FS_PRIVATE_FIELDS
 };
+
+#undef UV_REQ_PRIVATE_FIELDS
+#define UV_REQ_PRIVATE_FIELDS UV_REQ_PRIVATE_FIELDS_TEMP
+#undef UV_REQ_PRIVATE_FIELDS_TEMP /* for uv_fs_s */
 
 UV_EXTERN uv_fs_type uv_fs_get_type(const uv_fs_t*);
 UV_EXTERN ssize_t uv_fs_get_result(const uv_fs_t*);
