@@ -22,8 +22,18 @@
 #include <atomic.h>
 #endif
 
+UV_UNUSED(static void mem_barrier(void));
 UV_UNUSED(static int cmpxchgi(int* ptr, int oldval, int newval));
 UV_UNUSED(static void cpu_relax(void));
+
+UV_UNUSED(static void mem_barrier(void)) {
+#if defined(__i386__) || defined(__x86_64__)
+  __asm__ __volatile__("":::"memory");
+#else
+  /* Full barrier for other archs. */
+  __sync_synchronize();
+#endif
+}
 
 /* Prefer hand-rolled assembly over the gcc builtins because the latter also
  * issue full memory barriers.

@@ -244,7 +244,8 @@ typedef struct uv_utsname_s uv_utsname_t;
 typedef struct uv_statfs_s uv_statfs_t;
 
 typedef enum {
-  UV_LOOP_BLOCK_SIGNAL
+  UV_LOOP_BLOCK_SIGNAL,
+  UV_LOOP_RESERVED30 = (1 << 30)
 } uv_loop_option;
 
 typedef enum {
@@ -394,7 +395,11 @@ UV_EXTERN char* uv_err_name_r(int err, char* buf, size_t buflen);
   /* read-only */                                                             \
   uv_req_type type;                                                           \
   /* private */                                                               \
-  void* reserved[6];                                                          \
+  void* reserved[5];                                                          \
+  union {                                                                     \
+    uintptr_t fs_req_engine;                                                  \
+    uintptr_t unused;                                                         \
+  } priv;                                                                     \
   UV_REQ_PRIVATE_FIELDS                                                       \
 
 /* Abstract base class of all requests. */
