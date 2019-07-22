@@ -258,6 +258,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
        src/unix/android-ifaddrs.c
        src/unix/linux-core.c
        src/unix/linux-inotify.c
+       src/unix/linux-iouring.c
        src/unix/linux-syscalls.c
        src/unix/procfs-exepath.c
        src/unix/pthread-fixes.c
@@ -296,6 +297,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list(APPEND uv_sources
        src/unix/linux-core.c
        src/unix/linux-inotify.c
+       src/unix/linux-iouring.c
        src/unix/linux-syscalls.c
        src/unix/procfs-exepath.c
        src/unix/sysinfo-loadavg.c)
