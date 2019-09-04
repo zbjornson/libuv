@@ -258,6 +258,11 @@ int uv__getsockpeername(const uv_handle_t* handle,
 
 
 /*
+ * Platform-specific.
+ */
+int uv__platform_work_cancel(uv_req_t* req);
+
+/*
  * Process stdio handles.
  */
 int uv__stdio_create(uv_loop_t* loop,
