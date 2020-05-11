@@ -230,6 +230,7 @@
       'sources': [
         'benchmark-async.c',
         'benchmark-async-pummel.c',
+        'benchmark-fs-read.c',
         'benchmark-fs-stat.c',
         'benchmark-getaddrinfo.c',
         'benchmark-list.h',
