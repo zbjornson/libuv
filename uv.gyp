@@ -34,6 +34,7 @@
         'shared_zos_defines': [ ],
       }],
     ],
+    'uv_shared_liburing%': 'false',
   },
 
   'targets': [
@@ -238,6 +239,7 @@
           'sources': [
             'src/unix/linux-core.c',
             'src/unix/linux-inotify.c',
+            'src/unix/linux-iouring.c',
             'src/unix/linux-syscalls.c',
             'src/unix/linux-syscalls.h',
             'src/unix/procfs-exepath.c',
@@ -248,6 +250,9 @@
           'link_settings': {
             'libraries': [ '-ldl', '-lrt' ],
           },
+        }],
+        [ 'OS=="linux" and uv_shared_liburing=="false"', {
+          'dependencies': [ 'deps/liburing/liburing.gyp:liburing' ]
         }],
         [ 'OS=="android"', {
           'sources': [
